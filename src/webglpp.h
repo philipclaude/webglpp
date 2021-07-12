@@ -21,6 +21,8 @@ namespace gl
   static const int STATIC_DRAW = 3;
 }
 
+#define ERROR(msg) printf("%s (line %d of file %s\n",msg,__LINE__,__FILE__);
+
 class BufferObject {
 
 public:
@@ -44,6 +46,7 @@ public:
   void get( std::vector<T>& data ) const {
     int nelem = bytes_.size() / bytes_per_elem_;
     data.resize(nelem);
+    printf("nbytes per elem = %d, nelem = %d\n",bytes_per_elem_,nelem);
     for (int i = 0; i < nelem; i++) {
       data[i] = *reinterpret_cast<const T*>(&bytes_[i*bytes_per_elem_]);
     }
@@ -64,9 +67,9 @@ public:
     return data;
   }
 
-  std::vector<unsigned int> Uint16Array() const {
-    assert( type_ == typeid(unsigned int).name() );
-    std::vector<unsigned int> data;
+  std::vector<unsigned short> Uint16Array() const {
+    assert( type_ == typeid(unsigned short).name() );
+    std::vector<unsigned short> data;
     get(data);
     return data;
   }
@@ -105,7 +108,7 @@ public:
       bound_element_buffer_ = buffers_[buffer].get();
     }
     else {
-      printf("unimplemented buffer type\n");
+      ERROR("unimplemented buffer type");
     }
   }
   void bindTexture( int type , int texture );
@@ -115,8 +118,11 @@ public:
     if (type == gl::ARRAY_BUFFER) {
       bound_array_buffer_->write<T>(data,nbytes);
     }
+    else if (type == gl::ELEMENT_ARRAY_BUFFER) {
+      bound_element_buffer_->write<T>(data,nbytes);
+    }
     else {
-      printf("unimplemented buffer type\n");
+      ERROR("unimplemented buffer type");
     }
   }
 
@@ -127,12 +133,12 @@ public:
       bound_array_buffer_->set_tag(name);
       bound_array_buffer_->set_target(type);
     }
-    if (type == gl::ELEMENT_ARRAY_BUFFER) {
+    else if (type == gl::ELEMENT_ARRAY_BUFFER) {
       bound_element_buffer_->set_tag(name);
       bound_element_buffer_->set_target(type);
     }
     else {
-      printf("unimplemented buffer type\n");
+      ERROR("unimplemented buffer type");
     }
   }
 
@@ -144,7 +150,7 @@ public:
       bound_array_buffer_->get<T>(data);
     }
     else {
-      printf("unimplemented buffer type\n");
+      ERROR("unimplemented buffer type");
     }
   }
 
@@ -152,7 +158,8 @@ public:
   target_name( int type ) {
     if      (type == gl::ARRAY_BUFFER) return "ARRAY_BUFFER";
     else if (type == gl::ELEMENT_ARRAY_BUFFER) return "ELEMENT_ARRAY_BUFFER";
-    else printf("unimplemented buffer type\n");
+    else ERROR("unimplemented buffer type");
+    return "";
   }
 
   void send();
