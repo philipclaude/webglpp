@@ -45,7 +45,9 @@ shakehands(int client_fd , const std::string& request) {
   // extract the key and remove whitespace
   int n = idx1 - (idx0 + lookfor.size());
   std::string key = request.substr(idx0 + lookfor.size(),n);
-  key.erase(remove(key.begin(),key.end(),' '),key.end());
+  const char* ws = " \t\n\r\f\v";
+  key.erase( 0 , key.find_first_not_of(ws) );
+  //printf("key = %s\n",key.c_str());
 
   // encode the key + GUID for the handshake response
   std::string key_guid = key + guid;
