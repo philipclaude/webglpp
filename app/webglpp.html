@@ -29,6 +29,7 @@
 
   <script src='webglpp.js'></script>
   <script src='colormap.js'></script>
+  <script src='utils.js'></script>
 
   <style>
     #text {
@@ -44,7 +45,7 @@
   </style>
 </head>
 
-<body style='background-color:gray' onload="connect();">
+<body style='background-color:gray' onload="run();">
 
   <!-- wrapper -->
   <div class="d-flex" id="wrapper">
@@ -72,63 +73,63 @@
   </div> <!-- wrapper -->
 </body>
 
-<script type="text/javascript">
-
-  // global webglpp variable
-  webglpp = {};
-
-  let connect = function() {
-
-    let websocket = window['MozWebSocket'] ? window['MozWebSocket'] : window['WebSocket'];
-
-    let addr = "ws://localhost:7681";
-
-    let ws = new websocket(addr);
-    ws.onopen  = function(evt) { console.log('opened'); }
-    ws.onclose = function(evt) { console.log('connection closed'); }
-    ws.onmessage = function(evt) {
-
-      let mesh = JSON.parse(evt.data);
-
-      let vertices = mesh['vertices'];
-      let triangles = mesh['triangles'];
-
-      console.log(vertices);
-      console.log(triangles);
-      webglpp.vertices = vertices;
-      webglpp.triangles = triangles;
-
-      run();
-    }
-  }
-</script>
-
 <script>
+
+// use the basic shaders with a uniform in the fragment shader that controls whether the color is black
+vertexShaderSource = `
+  attribute vec3 a_Position;
+  attribute vec3 a_Color;
+  attribute vec3 a_Normal;
+
+  uniform mat4 u_ModelMatrix;
+  uniform mat4 u_ViewMatrix;
+  uniform mat4 u_PerspectiveMatrix;
+  uniform mat4 u_NormalMatrix;
+
+  uniform vec3  u_color;
+  uniform int   u_field;
+
+  varying vec3 v_Color;
+  varying vec3 v_Normal;
+
+  void main() {
+    gl_Position = u_PerspectiveMatrix * u_ViewMatrix * u_ModelMatrix * vec4(a_Position,1.0);
+
+    if (u_field < 0)
+      v_Color = u_color;
+    else
+      v_Color = a_Color;
+
+    v_Normal = mat3(u_NormalMatrix)*a_Normal;
+  }`;
+fragmentShaderSource = `
+  precision highp float;
+  uniform int   u_edges;
+  uniform float u_alpha;
+
+  varying vec3 v_Color;
+
+  void main() {
+
+    if (u_edges < 0) {
+      gl_FragColor = vec4(v_Color,u_alpha);
+    }
+    else {
+      gl_FragColor = vec4(0,0,0,1);
+    }
+  }`;
+
 
   let visualizer = undefined;
   function run() {
 
-    /*
-    // field that renders a constant color per triangle
-    let triangles = new Array();
-    for (let i = 0; i < smiley.triangles.length/3; i++)
-      triangles.push(i);
+    let addr = "ws://localhost:7682";
 
-    // field that renders varying color per triangle (vertex-based values)
-    let field = new Array();
-    for (let i = 0; i < smiley.vertices.length/2; i++)
-      field.push(smiley.vertices[2*i]) // x-coordinate
+    visualizer = new WebGLpp(addr,'canvas-visualizer',vertexShaderSource,fragmentShaderSource);
+    visualizer.connect(addr);
 
-    // save the fields
-    smiley.fields = { 'active': 'triangle-number' ,
-      'x-coordinate': new Field(field,'vertex'),
-      'triangle-number': new Field(triangles,'triangle')
-    };
-    */
-
-    visualizer = new Visualizer('canvas-visualizer');
-    visualizer.addMesh( webglpp , true , true , false );
-    visualizer.draw();
+    //let avro = new avroWebGL(visualizer);
+    //visualizer.draw();
   }
 
   function savePNG() {

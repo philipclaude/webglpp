@@ -147,8 +147,12 @@ Server::write() {
   server_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (server_fd < 0) {
     printf("failed to create server socket\n");
-    goto cleanup;
+    //goto cleanup;
   }
+
+  int enble = 1;
+  if (setsockopt(server_fd,SOL_SOCKET,SO_REUSEADDR,&enble,sizeof(int)) < 0)
+    printf("error\n");
 
   // bind the server to our socket
   server.sin_family      = AF_INET;
@@ -190,6 +194,7 @@ Server::write() {
   cleanup:
   if (client_fd >= 0) close(client_fd);
   if (server_fd >= 0) close(server_fd);
+  shutdown(server_fd,2);
 }
 
 } // websockets

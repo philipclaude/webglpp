@@ -13,10 +13,15 @@ main( int argc , char** argv ) {
   int vertex_buffer = gl.createBuffer();
   gl.bindBuffer( gl::ARRAY_BUFFER , vertex_buffer);
 
-  std::vector<double> coordinates( 10 * 3 , 1 );
-  gl.bufferData( gl::ARRAY_BUFFER , coordinates.data() , sizeof(double)*coordinates.size() );
+  std::vector<float> coordinates( 10 * 3 , 1 );
+  for (int i = 0; i < coordinates.size(); i++)
+    coordinates[i] = float(i)/coordinates.size();
+  gl.bufferData( gl::ARRAY_BUFFER , coordinates.data() , sizeof(float)*coordinates.size() );
 
-  //gl.write();
+  gl.tagBuffer( gl::ARRAY_BUFFER , "coordinates" );
+
+  // send it to the browser that has an actual WebGL context
+  gl.send();
 
   return 0;
 }

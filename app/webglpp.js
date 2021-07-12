@@ -29,15 +29,15 @@ function compileProgram( gl , vertexShaderSource , fragmentShaderSource ) {
   return program;
 }
 
+function WebGLpp( url , canvasID , vertexShaderSource , fragmentShaderSource ) {
 
-function Visualizer(canvasID) {
   this.canvas     = document.getElementById(canvasID);
   this.textCanvas = document.getElementById('text');
   this.meshes = new Array();
   this.colormap = 'giraffe';
   this.vertexNumbers   = false;
   this.triangleNumbers = false;
-  this.initGL();
+  this.initGL(vertexShaderSource,fragmentShaderSource);
 
   // setup the callbacks for both canvases (webgl and text)
   this.dragging = false;
@@ -51,60 +51,116 @@ function Visualizer(canvasID) {
   this.textCanvas.addEventListener( 'mouseup' ,    function(event) { mouseUp(event,webgl); } );
   this.textCanvas.addEventListener( 'mousewheel' , function(event) { mouseWheel(event,webgl);} );
   document.addEventListener('contextmenu' , event => event.preventDefault() );
+
+  this.buffers = {};
 }
 
-Visualizer.prototype.initGL = function() {
+WebGLpp.prototype.connect = function(addr) {
+
+  let websocket = window['MozWebSocket'] ? window['MozWebSocket'] : window['WebSocket'];
+
+  let ws = new websocket(addr);
+  ws.onopen  = function(evt) { console.log('connection opened'); }
+  ws.onclose = function(evt) { console.log('connection closed'); }
+  ws.onmessage = function(evt) {
+
+    let message = JSON.parse(evt.data);
+    let buffers = message['buffers'];
+    console.log(buffers);
+
+    console.log('unpacking ' + buffers.length + 'buffers' );
+    for (let i = 0; i < buffers.length; i++) {
+
+      let buffer = buffers[i];
+      let data = buffer['data'];
+      let targ = buffer['target'];
+      let type = buffer['type'];
+      let tag  = buffer['tag'];
+      let indx = buffer['index'];
+
+      this.addBuffer(data,targ,type,tag,indx);
+    }
+  }
+}
+
+WebGLpp.prototype.addBuffer = function(data,target,type,tag,index) {
+
+  let gl = this.gl;
+
+  let buffer = gl.createBuffer();
+
+  // bind the buffer
+  if      (target == "ARRAY_BUFFER")         gl.bindBuffer( gl.ARRAY_BUFFER , buffer);
+  else if (target == "ELEMENT_ARRAY_BUFFER") gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER , buffer);
+  else {
+    console.log('unknown buffer target ' + target);
+    return;
+  }
+
+  if (type == "Float32Array") {
+    gl.bufferData( gl.ARRAY_BUFFER , new Float32Array(data) , gl.STATIC_DRAW );
+    gl.bindBuffer( gl.ARRAY_BUFFER , 0 );
+  }
+  else if (type == "Uint16Array") {
+    gl.bufferData( gl.ELEMENT_ARRAY_BUFFER , new Uint16Array(data) , gl.STATIC_DRAW );
+    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER , 0 );
+  }
+  else {
+    console.log('unknown buffer type' + type);
+    return;
+  }
+
+  this.buffers[buffer] = { 'tag': tag };
+}
+
+WebGLpp.prototype.initGL = function(vertexShaderSource,fragmentShaderSource) {
 
   // initialize the webgl context
-  this.gl = this.canvas.getContext('webgl') || this.canvas.getContext('experimental-webgl');
+  this.gl = this.canvas.getContext('webgl2') || this.canvas.getContext('experimental-webgl');
   this.gl.viewport(0,0,this.canvas.width, this.canvas.height);
-
-// use the basic shaders with a uniform in the fragment shader that controls whether the color is black
-vertexShaderSource = `
-  attribute vec3 a_Position;
-  attribute vec3 a_Color;
-  attribute vec3 a_Normal;
-
-  uniform mat4 u_ModelMatrix;
-  uniform mat4 u_ViewMatrix;
-  uniform mat4 u_PerspectiveMatrix;
-  uniform mat4 u_NormalMatrix;
-
-  uniform vec3  u_color;
-  uniform int   u_field;
-
-  varying vec3 v_Color;
-  varying vec3 v_Normal;
-
-  void main() {
-    gl_Position = u_PerspectiveMatrix * u_ViewMatrix * u_ModelMatrix * vec4(a_Position,1.0);
-
-    if (u_field < 0)
-      v_Color = u_color;
-    else
-      v_Color = a_Color;
-
-    v_Normal = mat3(u_NormalMatrix)*a_Normal;
-  }`;
-fragmentShaderSource = `
-  precision highp float;
-  uniform int   u_edges;
-  uniform float u_alpha;
-
-  varying vec3 v_Color;
-
-  void main() {
-
-    if (u_edges < 0) {
-      gl_FragColor = vec4(v_Color,u_alpha);
-    }
-    else {
-      gl_FragColor = vec4(0,0,0,1);
-    }
-  }`;
 
   // create the shader program and save the attribute locations
   this.program = compileProgram( this.gl , vertexShaderSource , fragmentShaderSource );
+}
+
+
+function avroWebGL(webglpp) {
+
+  this.gl     = webglpp.gl;
+  this.canvas = webglpp.canvas;
+
+  this.parseBuffers(webglpp.buffers);
+
+  // setup the view (camera) and perspective matrices
+  this.eye    = vec3.fromValues(0,0,-2);
+  this.center = vec3.create();
+  this.viewMatrix = mat4.create();
+  mat4.lookAt( this.viewMatrix, this.eye, this.center , vec3.fromValues(0,1,0) );
+
+  this.perspectiveMatrix = mat4.create()
+  mat4.perspective( this.perspectiveMatrix, Math.PI/4.0, this.canvas.width/this.canvas.height, 0.1, 1000.0 );
+}
+
+avroWebGL.prototype.parseBuffers = function(buffers) {
+
+  console.log('parsing ' + buffers.length + ' buffers' );
+
+  // split up the buffer information into coordinates, triangle indices, edge indices, normals, colors, etc.
+  let nb_vao = 0;
+  for (let i = 0; i < buffers.length; i++) {
+
+    // avro will have tagged a buffer with the convention name-index where index is the index of the vao
+    const tag = buffers[i].tag;
+    const s = tag.split("-");
+    idx = Uint16(s[1]);
+    if (idx > nb_vao) nb_vao = idx;
+  }
+  console.log('creating ' + nb_vao + 'meshes');
+
+}
+
+avroWebGL.prototype.setup = function( gl , mesh , colormap ) {
+
   this.a_Position = this.gl.getAttribLocation(this.program,'a_Position');
   this.a_Color    = this.gl.getAttribLocation(this.program,'a_Color');
   this.a_Normal   = this.gl.getAttribLocation(this.program,'a_Normal');
@@ -119,134 +175,12 @@ fragmentShaderSource = `
   this.u_alpha = this.gl.getUniformLocation(this.program,'u_alpha');
   this.u_field = this.gl.getUniformLocation(this.program,'u_field');
   this.u_color = this.gl.getUniformLocation(this.program,'u_color');
-
-  // setup the view (camera) and perspective matrices
-  this.eye    = vec3.fromValues(0,0,-2);
-  this.center = vec3.create();
-  this.viewMatrix = mat4.create();
-  mat4.lookAt( this.viewMatrix, this.eye, this.center , vec3.fromValues(0,1,0) );
-
-  this.perspectiveMatrix = mat4.create()
-  mat4.perspective( this.perspectiveMatrix, Math.PI/4.0, this.canvas.width/this.canvas.height, 0.1, 1000.0 );
 }
 
-let setupBuffers = function( gl , mesh , colormap ) {
-
-  // check if this mesh has a field we want to draw
-  if (mesh.fields != undefined) {
-    mesh.fields[mesh.fields.active].computeColors(colormap,mesh);
-    mesh.colors = mesh.fields[mesh.fields.active].colors;
-  }
-
-  // create vertex position buffer
-  mesh.vertexBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vertexBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(mesh.drawVertices || mesh.vertices), gl.STATIC_DRAW);
-
-  // create triangle index buffer
-  mesh.triangleBuffer = gl.createBuffer();
-  gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER , mesh.triangleBuffer );
-  gl.bufferData( gl.ELEMENT_ARRAY_BUFFER , new Uint16Array(mesh.drawTriangles || mesh.triangles) , gl.STATIC_DRAW );
-
-  // create the edge index buffer
-  mesh.edgeBuffer = gl.createBuffer();
-  gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER , mesh.edgeBuffer );
-  gl.bufferData( gl.ELEMENT_ARRAY_BUFFER , new Uint16Array(mesh.drawEdges || mesh.edges) , gl.STATIC_DRAW );
-
-  // create vertex normal buffer
-  if (mesh.normals != undefined) {
-    mesh.normalBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normalBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(mesh.normals), gl.STATIC_DRAW);
-  }
-
-  // create the vertex color buffer
-  if (mesh.colors != undefined) {
-    mesh.colorBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.colorBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(mesh.colors) , gl.STATIC_DRAW );
-  }
-
-  if (mesh.drawTriangles != undefined)
-    mesh.nb_draw_triangles = mesh.drawTriangles.length,
-    mesh.nb_draw_edges = mesh.drawEdges.length;
-  else
-    mesh.nb_draw_triangles = mesh.triangles.length,
-    mesh.nb_draw_edges = mesh.edges.length;
-}
-
+/*
 Visualizer.prototype.addMesh = function(mesh,twod,scale = true,flipy = false) {
 
-  // extract the edges from the mesh
-  // precompute the edges
-  let edges = new Array();
-  let edgeMap = {};
-
-  for (let i = 0; i < mesh.triangles.length/3; i++) {
-
-    for (let j = 0; j < 3; j++) {
-      let p    = mesh.triangles[3*i +j      ];
-      let q    = mesh.triangles[3*i +(j+1)%3];
-      let edge = [ Math.min(p,q) , Math.max(p,q) ];
-      let key  = JSON.stringify(edge);
-
-      if (!(key in edgeMap)) {
-        edgeMap[key] = edges.length/2;
-        edges.push(p);
-        edges.push(q);
-      }
-    }
-  }
-  mesh.edges = edges;
-
-  if (twod) {
-    // convert the vertices to 3d by appending a z-coordinate of 0
-    let vertices = new Array();
-    for (let i = 0; i < mesh.vertices.length/2; i++)
-      vertices.push( mesh.vertices[2*i], mesh.vertices[2*i+1], 0.0 );
-    mesh.vertices = vertices;
-  }
-
-  // compute the bounding box
-  const nb_vertices = mesh.vertices.length/3;
-  let xmin = [1e20,1e20,1e20];
-  let xmax = [-1e20,-1e20,-1e20];
-  let center = [0,0,0];
-  for (let i = 0; i < nb_vertices; i++) {
-    for (let d = 0; d < 3; d++) {
-      const xd = mesh.vertices[3*i+d];
-      if (xd < xmin[d]) xmin[d] = xd;
-      if (xd > xmax[d]) xmax[d] = xd;
-      center[d] += xd;
-    }
-  }
-
-  // avoid division by zero if the mesh in in 2d
-  if (twod) xmin[2] = -0.5, xmax[2] = 0.5;
-
-  for (let d = 0; d < 3; d++)
-    center[d] /= nb_vertices;
-
-  if (scale) {
-
-    // scale to be within [-0.5,0.5]^3
-    let vertices = new Array( 3*nb_vertices );
-    let sign = [1,1,1];
-    if (flipy) sign[1] = -1;
-    for (let i = 0; i < nb_vertices; i++) {
-      for (let d = 0; d < 3; d++)
-        mesh.vertices[3*i+d] = sign[d]*(mesh.vertices[3*i+d] - center[d]) / (xmax[d] - xmin[d]);
-    }
-
-    xmin = [-0.5,-0.5,-0.5];
-    xmax = [ 0.5, 0.5, 0.5];
-  }
-
-  // save the bounding box
-  mesh.box = { 'min': xmin , 'max': xmax };
-
   setupBuffers(this.gl,mesh,this.colormap);
-  if (mesh.colors != undefined) this.gl.enableVertexAttribArray(this.a_Color);
 
   mesh.alpha = 1.0;
   mesh.modelMatrix = mat4.create();
@@ -368,81 +302,4 @@ Visualizer.prototype.draw = function() {
 
   }
 }
-
-// computes a rotation matrix of a vector (X,Y) on the unit sphere using quaternions
-function rotation(X, Y) {
-  let X2 = X*X, Y2 = Y*Y,
-    q  = 1 + X2 + Y2,
-    s  = 1 - X2 - Y2,
-    r2 = 1/(q*q), s2 = s*s,
-    A = (s2 + 4*(Y2 - X2))*r2,
-    B = -8*X*Y*r2,
-    C = 4*s*X*r2,
-    D = (s2 + 4*(X2 - Y2))*r2,
-    E = 4*s*Y*r2,
-    F = (s2 - 4*(X2 + Y2))*r2;
-  return mat4.fromValues(
-    A, B, C, 0,
-    B, D, E, 0,
-    -C,-E, F, 0,
-    0, 0, 0, 1
-  );
-}
-
-let mouseMove = function(event,webgl) {
-
-  if (!webgl.dragging) return;
-  event.preventDefault();
-  event = event || window.event;
-
-  // compute the rotatation matrix from the last point on the sphere to the new point
-  let T = mat4.create();
-  if (webgl.rotating)
-    T = rotation( -(event.pageX-webgl.lastX)/webgl.canvas.width , -(event.pageY-webgl.lastY)/webgl.canvas.height );
-  else
-    mat4.fromTranslation( T ,
-      vec3.fromValues( -(event.pageX-webgl.lastX)/webgl.canvas.width ,
-                       -(event.pageY-webgl.lastY)/webgl.canvas.height,
-                       0.0 ) );
-
-  for (let i = 0; i < webgl.meshes.length; i++)
-    mat4.multiply( webgl.meshes[i].modelMatrix , T , webgl.meshes[i].modelMatrix );
-
-  // redraw and set the last state as the new one
-  webgl.draw();
-  webgl.lastX = event.pageX;
-  webgl.lastY = event.pageY;
-}
-
-let mouseDown = function(event,webgl) {
-  // set that dragging is true and save the last state
-  webgl.dragging = true;
-
-  // determine if we are translating or rotating
-  if (event.button == 2) webgl.rotating = true; // left button
-  else webgl.rotating = false; // middle or right buttons
-
-  webgl.lastX    = event.pageX;
-  webgl.lastY    = event.pageY;
-}
-
-let mouseUp = function(event,webgl) {
-  // dragging is now false
-  webgl.dragging = false;
-}
-
-let mouseWheel = function(event,webgl) {
-  event.preventDefault();
-
-  let scale = 1.0;
-  if (event.deltaY > 0) scale = 0.9;
-  else if (event.deltaY < 0) scale = 1.1;
-
-  // scale the direction from the model center to the eye
-  let direction = vec3.create();
-  vec3.subtract( direction , webgl.eye , webgl.center );
-  vec3.scaleAndAdd( webgl.eye , webgl.center , direction , scale );
-
-  mat4.lookAt( webgl.viewMatrix , webgl.eye , webgl.center , vec3.fromValues(0,1,0) );
-  webgl.draw();
-}
+*/
