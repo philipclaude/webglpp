@@ -169,6 +169,10 @@ Server::write() {
 
     // receive the request from the client
     int bytes_received = recv(client_fd,&request[0],request.size(),0);
+    if (bytes_received == 0) {
+      printf("error receiving handshake from client\n");
+      goto cleanup;
+    }
 
     // shake hands with the client
     if (shakehands(client_fd,request) < 0) {

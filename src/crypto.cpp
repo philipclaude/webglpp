@@ -81,8 +81,6 @@ typedef unsigned __int64 u_int64_t;
 
 static const char encode[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 			     "abcdefghijklmnopqrstuvwxyz0123456789+/";
-static const char decode[] = "|$$$}rstuvwxyz{$$$$$$$>?@ABCDEFGHIJKLMNOPQRSTUVW"
-			     "$$$$$$XYZ[\\]^_`abcdefghijklmnopq";
 
 int
 b64_encode_string(const char *in, int in_len, char *out, int out_size)

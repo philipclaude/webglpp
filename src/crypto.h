@@ -1,5 +1,5 @@
-#ifndef AVRO_LIB_COMMON_CRYPTO_H_
-#define AVRO_LIB_COMMON_CRYPTO_H_
+#ifndef WEBGLPP_CRYPTO_H_
+#define WEBGLPP_CRYPTO_H_
 
 #include <cstdint>
 #include <cstdlib>

@@ -1,5 +1,5 @@
-#ifndef WEBSOCKETS_H_
-#define WEBSOCKETS_H_
+#ifndef WEBGLPP_WEBSOCKETS_H_
+#define WEBGLPP_WEBSOCKETS_H_
 
 #include <string>
 #include <vector>
