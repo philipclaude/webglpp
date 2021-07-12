@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <title>websocket client</title>
+</head>
+
+<body onload="connect();">
+
+  <script type="text/javascript">
+    let connect = function() {
+
+      let websocket = window['MozWebSocket'] ? window['MozWebSocket'] : window['WebSocket'];
+
+      let addr = "ws://localhost:7681";
+
+      let ws = new websocket(addr);
+      ws.onopen  = function(evt) { console.log('opened'); }
+      ws.onclose = function(evt) { console.log('connection closed'); }
+      ws.onmessage = function(evt) {
+
+        console.log('received message: ' + evt.data);
+
+        let mesh = JSON.parse(evt.data);
+
+        let vertices = mesh['vertices'];
+        let triangles = mesh['triangles'];
+
+        console.log(vertices);
+        console.log(triangles);
+
+      }
+    }
+  </script>
+
+</body>
+
+</html>

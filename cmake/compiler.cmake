@@ -1,0 +1,103 @@
+
+SET( GCOV_COMMAND gcov )
+
+SET( GNU_VERSIONS "4.8" "4.9" "5" "6" "7" "8" )
+SET( CLANG_VERSIONS "3.4" "3.5" "3.6" "3.7" "3.8" "3.9" "4.0" "5.0" )
+
+SET( BIN_NAMES )
+
+IF( BIN_DIR_NAME MATCHES "CLANG" )
+
+  #Try to find the generic version
+  FIND_PROGRAM( CMAKE_C_COMPILER clang )
+  FIND_PROGRAM( CMAKE_CXX_COMPILER clang++ )
+
+  #Choose a specific version if specified
+  FOREACH( VERSION ${CLANG_VERSIONS} )
+    STRING( REPLACE "." "" CLANGVERSION "CLANG${VERSION}" )
+    IF( BIN_DIR_NAME MATCHES ${CLANGVERSION} )
+      FIND_PROGRAM( CMAKE_C_COMPILER clang-${VERSION} )
+      FIND_PROGRAM( CMAKE_CXX_COMPILER clang++-${VERSION} )
+    ENDIF()
+  ENDFOREACH()
+
+  #If the specific version was not find, look for all possible versions
+  IF( NOT CMAKE_C_COMPILER OR NOT CMAKE_CXX_COMPILER )
+    FIND_PROGRAM( CMAKE_C_COMPILER clang )
+    FIND_PROGRAM( CMAKE_CXX_COMPILER clang++ )
+
+    FOREACH( VERSION ${CLANG_VERSIONS} )
+      IF( NOT CMAKE_C_COMPILER OR NOT CMAKE_CXX_COMPILER )
+        FIND_PROGRAM( CMAKE_C_COMPILER clang-${VERSION} )
+        FIND_PROGRAM( CMAKE_CXX_COMPILER clang++-${VERSION} )
+      ENDIF()
+    ENDFOREACH()
+  ENDIF()
+  LIST(APPEND BIN_NAMES "Clang" )
+
+ENDIF()
+
+# Also check for generators
+IF( BIN_DIR_NAME MATCHES "XCODE" )
+  LIST(APPEND BIN_NAMES "Xcode" )
+ENDIF()
+
+
+IF( BIN_DIR_NAME MATCHES "INTEL" )
+  SET( CMAKE_C_COMPILER icc )
+  SET( CMAKE_CXX_COMPILER icpc )
+  LIST(APPEND BIN_NAMES "Intel" )
+ENDIF()
+
+#IF( BIN_DIR_NAME MATCHES "MPI" )
+#  find_package(MPI REQUIRED)
+#  SET( CMAKE_C_COMPILER ${MPI_C_COMPILER} )
+#  SET( CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER} )
+#  LIST(APPEND BIN_NAMES "MPI" )
+#ENDIF()
+
+IF( BIN_DIR_NAME MATCHES "GNU" )
+  #Set to default version if no version is given
+  SET( GNU_C_COMPILER gcc )
+  SET( GNU_CXX_COMPILER g++ )
+
+  #Choose a specific version if specified
+  FOREACH( VERSION ${GNU_VERSIONS} )
+    STRING( REPLACE "." "" GNUVERSION "GNU${VERSION}" )
+    IF( BIN_DIR_NAME MATCHES ${GNUVERSION} )
+      SET( GNU_C_COMPILER gcc-${VERSION} )
+      SET( GNU_CXX_COMPILER g++-${VERSION} )
+      SET( GCOV_COMMAND gcov-${VERSION} )
+    ENDIF()
+  ENDFOREACH()
+
+  FIND_PROGRAM( GNU_C_COMPILER_FOUND ${GNU_C_COMPILER} )
+  FIND_PROGRAM( GNU_CXX_COMPILER_FOUND ${GNU_CXX_COMPILER} )
+
+  #If the specific version was not find, look for generic version
+  IF( NOT GNU_C_COMPILER_FOUND OR NOT GNU_CXX_COMPILER_FOUND )
+    UNSET( GNU_C_COMPILER )
+    UNSET( GNU_CXX_COMPILER )
+    FIND_PROGRAM( GNU_C_COMPILER gnu )
+    FIND_PROGRAM( GNU_CXX_COMPILER g++ )
+  ENDIF()
+
+  UNSET( GNU_C_COMPILER_FOUND CACHE )
+  UNSET( GNU_CXX_COMPILER_FOUND CACHE )
+
+  SET( CMAKE_C_COMPILER ${GNU_C_COMPILER}  )
+  SET( CMAKE_CXX_COMPILER ${GNU_CXX_COMPILER} )
+
+  LIST(APPEND BIN_NAMES "gnu" )
+ENDIF()
+
+
+LIST(LENGTH BIN_NAMES BIN_NAME_COUNT )
+IF( BIN_NAME_COUNT GREATER 1)
+  MESSAGE( "" )
+  MESSAGE( "=================================" )
+  MESSAGE( "Build directory name should contain one of: ${BIN_NAMES}")
+  MESSAGE( "=================================" )
+  MESSAGE( "" )
+  MESSAGE(FATAL_ERROR "" )
+ENDIF()

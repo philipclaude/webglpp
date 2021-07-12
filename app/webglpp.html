@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <title>webglpp</title>
+
+  <!-- latest compiled and minified CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+
+  <!-- jQuery library -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+  <!-- latest compiled JavaScript -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+
+  <!-- load MathJax for typesetting equations in LaTeX -->
+  <script>
+  MathJax = {
+    tex: {inlineMath: [['$', '$'], ['\\(', '\\)']]}
+  };
+  </script>
+  <script id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+
+  <!-- load gl-matrix: all functions and modules will be available in the mat2, mat3, mat4, vec2, vec3, vec4 namespaces -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+
+  <script src='webglpp.js'></script>
+  <script src='colormap.js'></script>
+
+  <style>
+    #text {
+      background-color: transparent;
+      position: absolute;
+      left: 0px;
+      top: 0px;
+      z-index: 10;
+    }
+    .container {
+      position: relative;
+    }
+  </style>
+</head>
+
+<body style='background-color:gray' onload="connect();">
+
+  <!-- wrapper -->
+  <div class="d-flex" id="wrapper">
+
+    <!-- navigation bar -->
+    <nav class="navbar" style="background-color: #000;">
+        <a class="navbar-brand" style="color: #fff" href="">webglpp</a>
+    </nav> <!-- navigation bar -->
+
+    <!-- page content -->
+    <div id="page-content-wrapper">
+
+      <div class="container-fluid" style='position:relative'>
+        <button id='button-save-png' onclick='savePNG()'>save PNG</button>
+        <button id='reset-view' onclick='resetView()'>reset view</button>
+        <input type='checkbox' onchange='visualizer.vertexNumbers = !visualizer.vertexNumbers;visualizer.draw();'>vtx #'s</input>
+        <input type='checkbox' onchange='visualizer.triangleNumbers = !visualizer.triangleNumbers;visualizer.draw();'>tri #'s</input>
+        <hr>
+        <div class='container'>
+          <canvas style='background-color:white' width=1000 height=1000 id='canvas-visualizer'></canvas>
+          <canvas width=1000 height=1000 id='text'></canvas>
+        </div>
+      </div> <!-- container-fluid -->
+    </div> <!-- page-content-wrapper -->
+  </div> <!-- wrapper -->
+</body>
+
+<script type="text/javascript">
+
+  // global webglpp variable
+  webglpp = {};
+
+  let connect = function() {
+
+    let websocket = window['MozWebSocket'] ? window['MozWebSocket'] : window['WebSocket'];
+
+    let addr = "ws://localhost:7681";
+
+    let ws = new websocket(addr);
+    ws.onopen  = function(evt) { console.log('opened'); }
+    ws.onclose = function(evt) { console.log('connection closed'); }
+    ws.onmessage = function(evt) {
+
+      let mesh = JSON.parse(evt.data);
+
+      let vertices = mesh['vertices'];
+      let triangles = mesh['triangles'];
+
+      console.log(vertices);
+      console.log(triangles);
+      webglpp.vertices = vertices;
+      webglpp.triangles = triangles;
+
+      run();
+    }
+  }
+</script>
+
+<script>
+
+  let visualizer = undefined;
+  function run() {
+
+    /*
+    // field that renders a constant color per triangle
+    let triangles = new Array();
+    for (let i = 0; i < smiley.triangles.length/3; i++)
+      triangles.push(i);
+
+    // field that renders varying color per triangle (vertex-based values)
+    let field = new Array();
+    for (let i = 0; i < smiley.vertices.length/2; i++)
+      field.push(smiley.vertices[2*i]) // x-coordinate
+
+    // save the fields
+    smiley.fields = { 'active': 'triangle-number' ,
+      'x-coordinate': new Field(field,'vertex'),
+      'triangle-number': new Field(triangles,'triangle')
+    };
+    */
+
+    visualizer = new Visualizer('canvas-visualizer');
+    visualizer.addMesh( webglpp , true , true , false );
+    visualizer.draw();
+  }
+
+  function savePNG() {
+    visualizer.gl.preserveDrawingBuffer = true;
+    visualizer.draw();
+    visualizer.gl.preserveDrawingBuffer = false;
+
+    let data = visualizer.canvas.toDataURL('image/png');
+    let url = data.replace(/^data:image\/png/,'data:application/octet-stream');
+    let link = document.createElement('a');
+    link.setAttribute('href', url);
+    let filename = 'mesh.png';
+    link.setAttribute('download',filename);
+    link.click();
+  }
+
+  function resetView() {
+    for (let i = 0; i < visualizer.meshes.length; i++)
+      visualizer.meshes[i].modelMatrix = mat4.create();
+    visualizer.eye = vec3.fromValues(0,0,-2);
+    mat4.lookAt( visualizer.viewMatrix, visualizer.eye, visualizer.center , vec3.fromValues(0,1,0) );
+    visualizer.draw();
+  }
+
+</script>
+
+</html>
