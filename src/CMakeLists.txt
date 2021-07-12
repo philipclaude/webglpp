@@ -1,4 +1,4 @@
-set(SOURCES crypto.cpp websockets.cpp )
+set(SOURCES crypto.cpp websockets.cpp webglpp.cpp )
 add_library( webglpp_src OBJECT ${SOURCES} )
 
 add_library( webglpp_shared SHARED $<TARGET_OBJECTS:webglpp_src> )
