@@ -186,6 +186,57 @@ avroWebGL.prototype.setup = function(webglpp) {
   this.perspectiveMatrix = mat4.create()
   mat4.perspective( this.perspectiveMatrix, Math.PI/4.0, this.canvas.width/this.canvas.height, 0.1, 1000.0 );
 
+  // initialize the texture
+  let gl = this.gl;
+  let texture = this.gl.createTexture();
+  this.gl.bindTexture( this.gl.TEXTURE_2D , texture );
+
+  // fill texture with data
+  /*
+  const level = 0;
+  const internalFormat = gl.R32F;
+  const width = 4;
+  const height = 1;
+  const border = 0;
+  const type = gl.FLOAT;
+  const data = new Float32Array([1,1,1,1]);
+  const alignment = 1;
+  gl.pixelStorei( gl.UNPACK_ALIGNMENT , alignment );
+  gl.texImage2D( gl.TEXTURE_2D , level , internalFormat , width , height , border , gl.RED , type , data );
+
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+  // activate the texture and set the uniform
+  gl.activeTexture( gl.TEXTURE0 + 0 );
+  this.gl.bindTexture( this.gl.TEXTURE_2D , texture );
+  gl.uniform1i(gl.getUniformLocation(this.program, 'u_colormap'),0);
+  */
+
+  const data = new Float32Array(colormap['viridis']);
+  const level = 0;
+  const internalFormat = gl.RGB32F;
+  const width = data.length/3;
+  const height = 1;
+  const border = 0;
+  const type = gl.FLOAT;
+  const alignment = 1;
+
+  gl.pixelStorei( gl.UNPACK_ALIGNMENT , alignment );
+  gl.texImage2D( gl.TEXTURE_2D , level , internalFormat , width , height , border , gl.RGB , type , data );
+
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+  // activate the texture and set the uniform
+  gl.activeTexture( gl.TEXTURE0 + 0 );
+  this.gl.bindTexture( this.gl.TEXTURE_2D , texture );
+  gl.uniform1i(gl.getUniformLocation(this.program, 'u_colormap'),0);
+
 }
 
 avroWebGL.prototype.draw = function() {

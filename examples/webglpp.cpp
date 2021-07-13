@@ -14,10 +14,10 @@ main( int argc , char** argv ) {
   gl.bindBuffer( gl::ARRAY_BUFFER , vertex_buffer);
 
   std::vector<float> coordinates = {
-    0.0,0.0,0.0,
-    1.0,0.0,0.0,
-    1.0,1.0,0.0,
-    0.0,1.0,0.0
+    0.0,0.0,1.0,
+    1.0,0.0,2.0,
+    1.0,1.0,3.0,
+    0.0,1.0,4.0
   };
   gl.bufferData( gl::ARRAY_BUFFER , coordinates.data() , sizeof(float)*coordinates.size() );
   gl.tagBuffer( gl::ARRAY_BUFFER , "coordinates-0" );
@@ -35,7 +35,7 @@ main( int argc , char** argv ) {
   gl.bufferData( gl::ELEMENT_ARRAY_BUFFER , edges.data() , sizeof(unsigned short)*edges.size() );
   gl.tagBuffer( gl::ELEMENT_ARRAY_BUFFER , "edges-0" );
 
-  // we could even create another set of edges for the same mesh (same tag)
+  // we could even create another set of edges for the same mesh (same tag) which gets added as a separate primitive
   std::vector<unsigned short> edges2 = { 1,3 };
   int edge_buffer2 = gl.createBuffer();
   gl.bindBuffer( gl::ELEMENT_ARRAY_BUFFER , edge_buffer2 );

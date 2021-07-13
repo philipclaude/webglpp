@@ -76,10 +76,11 @@
 <script>
 
 // use the basic shaders with a uniform in the fragment shader that controls whether the color is black
-vertexShaderSource = `
-  attribute vec3 a_Position;
-  attribute vec3 a_Color;
-  attribute vec3 a_Normal;
+vertexShaderSource = `#version 300 es
+  precision mediump float;
+  in vec3 a_Position;
+  in vec3 a_Color;
+  in vec3 a_Normal;
 
   uniform mat4 u_ModelMatrix;
   uniform mat4 u_ViewMatrix;
@@ -89,8 +90,9 @@ vertexShaderSource = `
   uniform vec3  u_color;
   uniform int   u_field;
 
-  varying vec3 v_Color;
-  varying vec3 v_Normal;
+  out vec3 v_Position;
+  out vec3 v_Color;
+  out vec3 v_Normal;
 
   void main() {
     gl_Position = u_PerspectiveMatrix * u_ViewMatrix * u_ModelMatrix * vec4(a_Position,1.0);
@@ -101,21 +103,32 @@ vertexShaderSource = `
       v_Color = a_Color;
 
     v_Normal = mat3(u_NormalMatrix)*a_Normal;
+    v_Position = vec3(u_ViewMatrix * u_ModelMatrix * vec4(a_Position,1.0));
   }`;
-fragmentShaderSource = `
-  precision highp float;
+fragmentShaderSource = `#version 300 es
+  precision mediump float;
   uniform int   u_edges;
   uniform float u_alpha;
 
-  varying vec3 v_Color;
+  in vec3 v_Color;
+  in vec3 v_Position;
+  out vec4 fragColor;
+
+  uniform sampler2D u_colormap;
 
   void main() {
 
+    float x = 170.1111; // testing rounding of float to texture coordinate
+    vec3 c = texelFetch( u_colormap , ivec2(x,0) , 0 ).xyz;
+    vec3 normal = normalize( cross(dFdx(v_Position),dFdy(v_Position)));
+
     if (u_edges < 0) {
-      gl_FragColor = vec4(0.8,0.8,0.2,1);//vec4(v_Color,u_alpha);
+      //fragColor = vec4(0.8,0.8,0.2,1);
+      //fragColor = vec4(normal,1);
+      fragColor = vec4(c,1);
     }
     else {
-      gl_FragColor = vec4(0,0,0,1);
+      fragColor = vec4(0,0,0,1);
     }
   }`;
 
@@ -123,7 +136,9 @@ fragmentShaderSource = `
   let visualizer = undefined;
   function run() {
 
-    let addr = "ws://localhost:7682";
+    let addr = "ws://localhost:7681";
+    //addr = "ws://wazowski.middlebury.edu:7682";
+    //addr = "ws://140.233.165.163:7682";
 
     visualizer = new WebGLpp(addr,'canvas-visualizer',vertexShaderSource,fragmentShaderSource);
 

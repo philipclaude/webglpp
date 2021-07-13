@@ -69,8 +69,8 @@ let mouseMove = function(event,webgl) {
   }
   else {
     mat4.fromTranslation( T ,
-      vec3.fromValues(  (event.pageX-webgl.lastX)/webgl.canvas.width ,
-                       -(event.pageY-webgl.lastY)/webgl.canvas.height,
+      vec3.fromValues(  2*(event.pageX-webgl.lastX)/webgl.canvas.width ,
+                       -2*(event.pageY-webgl.lastY)/webgl.canvas.height,
                        0.0 ) );
 
     // move the center as well
@@ -92,8 +92,10 @@ let mouseDown = function(event,webgl) {
   webgl.dragging = true;
 
   // determine if we are translating or rotating
-  if (event.button == 2) webgl.rotating = true; // left button
-  else webgl.rotating = false; // middle or right buttons
+  //if (event.button == 2) webgl.rotating = true; // left button
+  //else webgl.rotating = false; // middle or right buttons
+  if (event.ctrlKey) webgl.rotating = true;
+  else webgl.rotating = false;
 
   webgl.lastX    = event.pageX;
   webgl.lastY    = event.pageY;
