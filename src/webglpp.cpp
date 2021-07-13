@@ -24,6 +24,14 @@ WebGLpp::send() {
       jbuffer["data"] = x;
       jbuffer["type"] = "Uint16Array";
     }
+    else if (buffer.type() == typeid(unsigned int).name()) {
+      std::vector<unsigned int> x = buffer.Uint32Array();
+      jbuffer["data"] = x;
+      jbuffer["type"] = "Uint16Array"; // still call it Uint16
+    }
+    else {
+      ERROR("unimplemented buffer type");
+    }
     jbuffer["tag"]    = buffer.tag();
     jbuffer["index"]  = i;
     jbuffer["target"] = target_name(buffer.target());

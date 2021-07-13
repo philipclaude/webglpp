@@ -74,6 +74,13 @@ public:
     return data;
   }
 
+  std::vector<unsigned int> Uint32Array() const {
+    assert( type_ == typeid(unsigned int).name() );
+    std::vector<unsigned int> data;
+    get(data);
+    return data;
+  }
+
   const std::string& type() const { return type_; }
   const std::string& tag() const { return tag_; }
   int target() const { return target_; }
