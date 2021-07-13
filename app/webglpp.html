@@ -77,11 +77,13 @@
 
 // use the basic shaders with a uniform in the fragment shader that controls whether the color is black
 vertexShaderSource = `#version 300 es
-  precision mediump float;
+  precision highp float;
   in vec3 a_Position;
   in vec3 a_Color;
   in vec3 a_Normal;
   in float a_Scalar;
+  in float a_Number;
+  in vec2 a_Param;
 
   uniform mat4 u_ModelMatrix;
   uniform mat4 u_ViewMatrix;
@@ -89,36 +91,38 @@ vertexShaderSource = `#version 300 es
   uniform mat4 u_NormalMatrix;
 
   uniform vec3  u_color;
-  uniform int   u_field;
 
   out vec3 v_Position;
   out vec3 v_Color;
-  out vec3 v_Normal;
+  //out vec3 v_Normal;
   out float v_Scalar;
+  flat out float v_Number; // floats that represent integers should be exactly representable
+  out vec2 v_Param;
 
   void main() {
     gl_Position = u_PerspectiveMatrix * u_ViewMatrix * u_ModelMatrix * vec4(a_Position,1.0);
 
-    if (u_field < 0)
-      v_Color = u_color;
-    else
-      v_Color = a_Color;
-
-    v_Normal = mat3(u_NormalMatrix)*a_Normal;
+    //v_Normal = mat3(u_NormalMatrix)*a_Normal;
     v_Position = vec3(u_ViewMatrix * u_ModelMatrix * vec4(a_Position,1.0));
     v_Scalar = a_Scalar;
+    v_Number = a_Number;
+    v_Param = a_Param;
   }`;
 fragmentShaderSource = `#version 300 es
-  precision mediump float;
+  precision highp float;
   uniform int   u_edges;
-  uniform float u_alpha;
 
   in vec3 v_Color;
   in vec3 v_Position;
   out vec4 fragColor;
   in float v_Scalar;
+  flat in float v_Number;
+  in vec2 v_Param;
 
   uniform sampler2D u_colormap;
+  uniform sampler2D u_field;
+
+  uniform int u_nb_basis;
 
   void
   get_color( in float u , out vec3 color ) {
@@ -127,20 +131,66 @@ fragmentShaderSource = `#version 300 es
     float umin = 0.0;
     float umax = 1.0;
 
-    float idx = 255.0*(u - umin)/(umax - umin);
+    int idx = int(255.0*(u - umin)/(umax - umin));
+    if (idx > 255) idx = 255;
+    if (idx < 0) idx = 0;
     color = texelFetch( u_colormap , ivec2(idx,0) , 0 ).xyz;
   }
-
 
   void main() {
 
     //float x = v_Scalar;
     //vec3 c = texelFetch( u_colormap , ivec2(x,0) , 0 ).xyz;
-    vec3 color;
-    get_color(v_Scalar,color);
+
+    float u = 0.0;
+    if (u_nb_basis == 0) {
+      u = texelFetch( u_field , ivec2(v_Number,0) , 0 ).x;
+    }
+    else if (u_nb_basis == 3) { // p = 1
+      float s = v_Param.x;
+      float t = v_Param.y;
+
+      int tri = int(v_Number);
+      int idx0 = int(3*tri);
+      int idx1 = int(3*tri+1);
+      int idx2 = int(3*tri+2);
+
+      float f0 = texelFetch( u_field , ivec2(5.,0) , 0 ).x;
+      float f1 = texelFetch( u_field , ivec2(5.,0) , 0 ).x;
+      float f2 = texelFetch( u_field , ivec2(5.,0) , 0 ).x;
+
+      float phi0 =  1.0 - s - t;
+      float phi1 =  s;
+      float phi2 =  t;
+      u = f0*phi0 + f1*phi1 + f2*phi2;
+
+    }
+    else if (u_nb_basis == 6) { // p = 2
+
+      float s = v_Param.x;
+      float t = v_Param.y;
+
+      int tri = int(v_Number);
+
+      float f0 = texelFetch( u_field , ivec2(6*tri  ,0) , 0 ).x;
+      float f1 = texelFetch( u_field , ivec2(6*tri+1,0) , 0 ).x;
+      float f2 = texelFetch( u_field , ivec2(6*tri+2,0) , 0 ).x;
+      float f3 = texelFetch( u_field , ivec2(6*tri+3,0) , 0 ).x;
+      float f4 = texelFetch( u_field , ivec2(6*tri+4,0) , 0 ).x;
+      float f5 = texelFetch( u_field , ivec2(6*tri+5,0) , 0 ).x;
+
+      float phi0 =  s*-3.0-t*3.0+s*t*4.0+(s*s)*2.0+(t*t)*2.0+1.0;
+      float phi1 =  -s+(s*s)*2.0;
+      float phi2 =  -t+(t*t)*2.0;
+      float phi3 =  s*t*4.0;
+      float phi4 =  t*(s+t-1.0)*-4.0;
+      float phi5 =  -s*(s*4.0+t*4.0-4.0);
+      u = f0*phi0 + f1*phi1 + f2*phi2 + f3*phi3 + f4*phi4 + f5*phi5;
+    }
 
     if (u_edges < 0) {
-      //fragColor = vec4(0.8,0.8,0.2,1);
+      vec3 color;
+      get_color(u,color);
       fragColor = vec4(color,1);
     }
     else {

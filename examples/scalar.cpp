@@ -48,10 +48,7 @@ main( int argc , char** argv ) {
   int field_buffer = gl.createBuffer();
   gl.bindBuffer( gl::ARRAY_BUFFER , field_buffer );
   gl.bufferData( gl::ARRAY_BUFFER , u.data() , sizeof(float) * u.size() );
-  gl.tagBuffer( gl::ARRAY_BUFFER , "scalar_order=1_tri1-0" );
-
-  // add a scalar field to the triangles 0 (size = number of triangles x nb_basis functions)
-
+  gl.tagBuffer( gl::ARRAY_BUFFER , "scalar-0" );
 
   // send it to the browser that has an actual WebGL context
   gl.send();

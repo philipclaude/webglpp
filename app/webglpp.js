@@ -69,6 +69,7 @@ WebGLpp.prototype.addBuffer = function(data,target,type,tag,index) {
   buffer.nb  = data.length;
   buffer.tag = tag;
   this.buffers.push(buffer);
+  buffer.data = data;
 }
 
 WebGLpp.prototype.initGL = function(vertexShaderSource,fragmentShaderSource) {
@@ -88,6 +89,7 @@ function avroWebGL() {
 avroWebGL.prototype.initialize = function(webglpp) {
 
   this.gl = webglpp.gl;
+  let gl = this.gl;
   let buffers = webglpp.buffers;
 
   console.log(buffers);
@@ -110,6 +112,7 @@ avroWebGL.prototype.initialize = function(webglpp) {
   for (let i = 0; i < nb_vao; i++)
     this.vao.push( new VertexArrayObject() );
 
+  let have_fields = false;
   for (let i = 0; i < buffers.length; i++) {
 
     const tag = buffers[i].tag;
@@ -131,29 +134,94 @@ avroWebGL.prototype.initialize = function(webglpp) {
       const j = this.vao[idx].triangles.length;
       this.vao[idx].triangles.push(buffers[i]);
       this.vao[idx].triangles[j].nb_indices = buffers[i].nb;
-      this.vao[idx].triangles[j].field_buffer = undefined; // fields should be added after triangles
+      this.vao[idx].triangles[j].field = undefined; // fields should be added after triangles
     }
     else if (name.indexOf('scalar') !== -1) {
       // creating scalar attribute
       this.vao[idx].scalar = buffers[i];
     }
     else if (name.indexOf('field') !== -1) {
+
+      // we have some fields to plot: hope that the coordinates are duplicated
+      // TODO (way to check this?)
+      have_fields = true;
+
       // determine which triangles these are for
-      const j = 0; // triangle patch 0
+      let idx_tri = name.indexOf('tri');
+      const j = parseInt(name[idx_tri+3]);
+      let idx_order = name.indexOf('order=');
+      let order = parseInt(name[idx_order+6]);
 
-      console.log('creating texture for vao index ' + idx + ' triangles ' + j);
-
-      // get rid of the previous buffer, but retrieve the data
+      console.log('creating texture for vao index ' + idx + ' triangles ' + j, 'order = ',order);
 
       // create a texture to hold the data
-      let texture_buffer = this.gl.createBuffer();
+      let texture = this.gl.createTexture();
+      this.gl.bindTexture( this.gl.TEXTURE_2D , texture );
 
-      this.vao[idx].triangles[j].field_buffer = texture_buffer;
+      console.log(buffers[i].data);
+      const data = new Float32Array(buffers[i].data);
+      const level = 0;
+      const internalFormat = gl.R32F;
+      const width = data.length;
+      const height = 1;
+      const border = 0;
+      const type = gl.FLOAT;
+      const alignment = 1;
+
+      gl.pixelStorei( gl.UNPACK_ALIGNMENT , alignment );
+      gl.texImage2D( gl.TEXTURE_2D , level , internalFormat , width , height , border , gl.RED , type , data );
+
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+      texture.order = order;
+      texture.nb_basis = (order+1)*(order+2)/2;
+      this.vao[idx].triangles[j].field = texture;
     }
     else {
       console.log('unknown primitive type');
     }
   }
+
+  // if we have some fields, we need to set up a vertex attribute for each triangle number
+  if (have_fields) {
+
+    // loop through the triangles of each vao
+    for (let i = 0; i < this.vao.length; i++) {
+      let vertex_numbers = [];
+      let parameters = [];
+      for (let j = 0; j < this.vao[i].triangles.length; j++) {
+        for (let k = 0; k < this.vao[i].triangles[j].nb_indices/3; k++) {
+          for (let d = 0; d < 3; d++)
+            vertex_numbers.push(k);
+
+          // it would be convenient if we had geometry shaders so this doesn't need to be uploaded to the GPU!
+          parameters.push(0.0); parameters.push(0.0);
+          parameters.push(1.0); parameters.push(0.0);
+          parameters.push(0.0); parameters.push(1.0);
+        }
+      }
+
+      console.assert( parameters.length/2 == this.vao[i].points.nb_indices/3 );
+
+      console.log('triangle numbers = ' + vertex_numbers);
+      console.log(parameters);
+      console.log(this.vao[i].points.data);
+
+      this.vao[i].numbers = this.gl.createBuffer();
+      this.gl.bindBuffer( this.gl.ARRAY_BUFFER , this.vao[i].numbers );
+      this.gl.bufferData( this.gl.ARRAY_BUFFER , new Float32Array(vertex_numbers) , this.gl.STATIC_DRAW );
+
+      this.vao[i].parameters = this.gl.createBuffer();
+      this.gl.bindBuffer( this.gl.ARRAY_BUFFER , this.vao[i].parameters );
+      this.gl.bufferData( this.gl.ARRAY_BUFFER , new Float32Array(parameters) , this.gl.STATIC_DRAW );
+
+    }
+
+  }
+
 
   this.setup(webglpp);
   this.draw();
@@ -209,7 +277,7 @@ avroWebGL.prototype.setup = function(webglpp) {
   let texture = this.gl.createTexture();
   this.gl.bindTexture( this.gl.TEXTURE_2D , texture );
 
-  const data = new Float32Array(colormap['viridis']);
+  const data = new Float32Array(colormap['bwr']);
   const level = 0;
   const internalFormat = gl.RGB32F;
   const width = data.length/3;
@@ -250,7 +318,7 @@ avroWebGL.prototype.draw = function() {
 
   // activate the texture and set the uniform
   gl.activeTexture( gl.TEXTURE0 + 0 );
-  this.gl.bindTexture( this.gl.TEXTURE_2D , this.colormap_texture );
+  gl.bindTexture( gl.TEXTURE_2D , this.colormap_texture );
   gl.uniform1i(gl.getUniformLocation(this.program, 'u_colormap'),0);
 
   for (let i = 0; i < this.vao.length; i++) {
@@ -262,22 +330,32 @@ avroWebGL.prototype.draw = function() {
 
 
 function VertexArrayObject() {
-  this.triangles = [];
-  this.edges     = [];
-  this.points    = undefined;
-  this.colors    = undefined;
-  this.normals   = undefined;
-  this.scalar    = undefined; // scalar attribute
+  this.triangles  = [];
+  this.edges      = [];
+  this.points     = undefined;
+  this.colors     = undefined;
+  this.normals    = undefined;
+  this.scalar     = undefined; // scalar attribute
+  this.numbers    = undefined;
+  this.parameters = undefined;
 }
 
 VertexArrayObject.prototype.draw = function(gl,program) {
-  // todo pass in different triangle/edge/point shaders
 
+  // todo pass in different triangle/edge/point shaders
   gl.bindBuffer( gl.ARRAY_BUFFER , this.points );
   const a_Position = gl.getAttribLocation(program,'a_Position');
   gl.vertexAttribPointer( a_Position , 3 , gl.FLOAT, false, 0, 0);
   gl.enableVertexAttribArray(a_Position);
 
+  if (this.parameters != undefined) {
+    gl.bindBuffer( gl.ARRAY_BUFFER , this.parameters );
+    const a_Param = gl.getAttribLocation(program,'a_Param');
+    gl.vertexAttribPointer( a_Param , 2 , gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(a_Param);
+  }
+
+  // option to enable scalar attribute
   if (this.scalar != undefined) {
     gl.bindBuffer( gl.ARRAY_BUFFER , this.scalar );
     const a_Scalar = gl.getAttribLocation(program,'a_Scalar');
@@ -285,12 +363,32 @@ VertexArrayObject.prototype.draw = function(gl,program) {
     gl.enableVertexAttribArray(a_Scalar);
   }
 
-  // if normals, if colors, etc. enable those attributes as well
-  // TODO
+  // option to enable triangle numbers (needed to determine which triangle each fragment is in)
+  // I really wish GLSL 300 would give gl_PrimitiveID
+  // In any case, the interpolation of v_Number is turned off (via 'flat' specifier) so the
+  // triangle number we obtain is exact (floats that represent integers should be represented exactly)
+  if (this.numbers != undefined) {
+    gl.bindBuffer( gl.ARRAY_BUFFER , this.numbers );
+    const a_Number = gl.getAttribLocation(program,'a_Number');
+    gl.vertexAttribPointer( a_Number , 1 , gl.FLOAT , false , 0 , 0 );
+    gl.enableVertexAttribArray(a_Number);
+  }
 
   // draw the triangles
   gl.uniform1i( program.u_edges , -1 );
   for (let i = 0; i < this.triangles.length; i++) {
+
+    if (this.triangles[i].field != undefined) {
+      // activate the texture and set the uniform
+      gl.activeTexture( gl.TEXTURE1 ); // field always in texture unit 1
+      gl.bindTexture( gl.TEXTURE_2D , this.triangles[i].field );
+      gl.uniform1i(gl.getUniformLocation(program, 'u_field'),1);
+
+      // tell the shader how many basis functions there are for the field
+      console.log(this.triangles[i].field.nb_basis);
+      gl.uniform1i(gl.getUniformLocation(program,'u_nb_basis'),this.triangles[i].field.nb_basis );
+    }
+
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER , this.triangles[i] );
     gl.drawElements( gl.TRIANGLES , this.triangles[i].nb_indices , gl.UNSIGNED_SHORT , 0 );
   }
