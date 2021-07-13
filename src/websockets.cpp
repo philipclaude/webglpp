@@ -143,18 +143,29 @@ Server::write() {
   std::string request(4096,' '); // this should be plenty for the client request
   socklen_t len = sizeof(struct sockaddr_in);
 
+  #ifdef _WIN32
+  WSADATA wsadata;
+  int error = WSAStartup(0x0202,&wsadata);
+  if (error) {
+    printf("error starting up windows sockets\n");
+    return;
+  }
+  #endif
+
   // create a socket
-  server_fd = socket(AF_INET, SOCK_STREAM, 0);
+  server_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);// 0);
   if (server_fd < 0) {
     printf("failed to create server socket\n");
-    //goto cleanup;
+    return;
   }
 
   // allow the port to be re-used so that we don't have to keep changing the port number when re-running
+  #ifndef _WIN32
   int enable = 1;
   if (setsockopt(server_fd,SOL_SOCKET,SO_REUSEADDR,&enable,sizeof(int)) < 0) {
-    printf("error\n");
+    printf("error setting socket options\n");
   }
+  #endif
 
   // bind the server to our socket
   server.sin_family      = AF_INET;
@@ -194,9 +205,16 @@ Server::write() {
   }
 
   cleanup:
+  #ifdef _WIN32
+  if (client_fd >= 0) closesocket(client_fd);
+  if (server_fd >= 0) closesocket(server_fd);
+  WSACleanup();
+  #else
   if (client_fd >= 0) close(client_fd);
   if (server_fd >= 0) close(server_fd);
+  #endif
   shutdown(server_fd,2);
+
 }
 
 } // websockets
