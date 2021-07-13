@@ -370,6 +370,7 @@ VertexArrayObject.prototype.draw = function(gl,program) {
   gl.uniform1i( program.u_edges , -1 );
   for (let i = 0; i < this.triangles.length; i++) {
 
+    gl.uniform1i(gl.getUniformLocation(program,'u_nb_basis'),-1 );
     if (this.triangles[i].field != undefined) {
       // activate the texture and set the uniform
       gl.activeTexture( gl.TEXTURE1 ); // field always in texture unit 1
@@ -390,6 +391,8 @@ VertexArrayObject.prototype.draw = function(gl,program) {
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER , this.edges[i] );
     gl.drawElements( gl.LINES , this.edges[i].nb_indices , gl.UNSIGNED_SHORT , 0 );
   }
+
+
 }
 
 /*
