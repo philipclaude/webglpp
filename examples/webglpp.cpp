@@ -44,7 +44,7 @@ main( int argc , char** argv ) {
   #endif
 
   // add a scalar attribute to coordinates 0 (size = number of vertices)
-  std::vector<float> u = {0.4 , 0.9 , 0.7 , 0.1};
+  std::vector<float> u = {0.4 , 0.9 , 0.3 , 0.1};
   int field_buffer = gl.createBuffer();
   gl.bindBuffer( gl::ARRAY_BUFFER , field_buffer );
   gl.bufferData( gl::ARRAY_BUFFER , u.data() , sizeof(float) * u.size() );
