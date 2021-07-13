@@ -385,7 +385,6 @@ VertexArrayObject.prototype.draw = function(gl,program) {
       gl.uniform1i(gl.getUniformLocation(program, 'u_field'),1);
 
       // tell the shader how many basis functions there are for the field
-      console.log(this.triangles[i].field.nb_basis);
       gl.uniform1i(gl.getUniformLocation(program,'u_nb_basis'),this.triangles[i].field.nb_basis );
     }
 

@@ -2,6 +2,8 @@
 
 #include <cstdlib>
 
+#define ORDER 3
+
 int
 main( int argc , char** argv ) {
 
@@ -40,36 +42,35 @@ main( int argc , char** argv ) {
   gl.bufferData( gl::ELEMENT_ARRAY_BUFFER , edges.data() , sizeof(unsigned short)*edges.size() );
   gl.tagBuffer( gl::ELEMENT_ARRAY_BUFFER , "edges-0" );
 
-  #if 0
-  // add a scalar attribute to coordinates 0 (size = number of vertices)
-  std::vector<float> u = {0.5 , 0.5 , 0.5, 0.8 , 0.8 , 0.8 };
-  int scalar_buffer = gl.createBuffer();
-  gl.bindBuffer( gl::ARRAY_BUFFER , scalar_buffer );
-  gl.bufferData( gl::ARRAY_BUFFER , u.data() , sizeof(float) * u.size() );
-  gl.tagBuffer( gl::ARRAY_BUFFER , "scalar-0" );
-  #endif
-
   // add a p = 2 field for triangles1-0 (vao 0, triangle patch 0)
-  #if 1
+  int order = ORDER;
+  #if ORDER == 0
+  std::vector<float> f = {0,1};
+  #elif ORDER == 1
+  std::vector<float> f = {
+    0 , 0.5 , 1.0 , 0.5 , 1.0 , 0.0
+  };
+  #elif ORDER == 2
   std::vector<float> f = {
     0.0 , 0.0 , 0.0 , 0.5 , 0.5 , 0.5 , // t0
     1.0 , 1.0 , 1.0 , 0.5 , 0.5 , 0.5   // t1
   };
+  #elif ORDER == 3
 
-  int field_buffer = gl.createBuffer();
-  gl.bindBuffer( gl::ARRAY_BUFFER , field_buffer );
-  gl.bufferData( gl::ARRAY_BUFFER , f.data() , sizeof(float) * f.size() );
-  gl.tagBuffer( gl::ARRAY_BUFFER , "field_order=2_tri0-0"); // field, p = 2, for triangle patch 0, vao 0
-  #else
   std::vector<float> f = {
-    0.0 , 1.0 , 0.0 , 0.0 , 0.5 , 1.0
+
+    0.0 , 0.1 , 0.2 , 0.3 , 0.4 , 0.5 , 0.6 , 0.7 , 0.8 , 0.9,
+    0.5 , 0.3 , 0.2 , 0.1 , 0.8 , 0.7 , 0.6 , 0.9 , 0.2 , 0.0
   };
 
+  #else
+  #error "unsupported solution order"
+  #endif
+
   int field_buffer = gl.createBuffer();
   gl.bindBuffer( gl::ARRAY_BUFFER , field_buffer );
   gl.bufferData( gl::ARRAY_BUFFER , f.data() , sizeof(float) * f.size() );
-  gl.tagBuffer( gl::ARRAY_BUFFER , "field_order=1_tri0-0"); // field, p = 2, for triangle patch 0, vao 0
-  #endif
+  gl.tagBuffer( gl::ARRAY_BUFFER , "field_order=" + std::to_string(order) + "_tri0-0"); // field for triangle patch 0, vao 0
 
   // send it to the browser that has an actual WebGL context
   gl.send();

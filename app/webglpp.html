@@ -142,35 +142,26 @@ fragmentShaderSource = `#version 300 es
     //float x = v_Scalar;
     //vec3 c = texelFetch( u_colormap , ivec2(x,0) , 0 ).xyz;
 
+    float s = v_Param.x;
+    float t = v_Param.y;
+    int tri = int(v_Number);
+
     float u = 0.0;
-    if (u_nb_basis == 0) {
+    if (u_nb_basis == 1) {
       u = texelFetch( u_field , ivec2(v_Number,0) , 0 ).x;
     }
     else if (u_nb_basis == 3) { // p = 1
-      float s = v_Param.x;
-      float t = v_Param.y;
 
-      int tri = int(v_Number);
-      int idx0 = int(3*tri);
-      int idx1 = int(3*tri+1);
-      int idx2 = int(3*tri+2);
-
-      float f0 = texelFetch( u_field , ivec2(5.,0) , 0 ).x;
-      float f1 = texelFetch( u_field , ivec2(5.,0) , 0 ).x;
-      float f2 = texelFetch( u_field , ivec2(5.,0) , 0 ).x;
+      float f0 = texelFetch( u_field , ivec2(3*tri  ,0) , 0 ).x;
+      float f1 = texelFetch( u_field , ivec2(3*tri+1,0) , 0 ).x;
+      float f2 = texelFetch( u_field , ivec2(3*tri+2,0) , 0 ).x;
 
       float phi0 =  1.0 - s - t;
       float phi1 =  s;
       float phi2 =  t;
       u = f0*phi0 + f1*phi1 + f2*phi2;
-
     }
     else if (u_nb_basis == 6) { // p = 2
-
-      float s = v_Param.x;
-      float t = v_Param.y;
-
-      int tri = int(v_Number);
 
       float f0 = texelFetch( u_field , ivec2(6*tri  ,0) , 0 ).x;
       float f1 = texelFetch( u_field , ivec2(6*tri+1,0) , 0 ).x;
@@ -187,6 +178,41 @@ fragmentShaderSource = `#version 300 es
       float phi5 =  -s*(s*4.0+t*4.0-4.0);
       u = f0*phi0 + f1*phi1 + f2*phi2 + f3*phi3 + f4*phi4 + f5*phi5;
     }
+    else if (u_nb_basis == 10) { // p = 3
+
+      float f0 = texelFetch( u_field , ivec2(10*tri + 0,0) , 0 ).x;
+      float f1 = texelFetch( u_field , ivec2(10*tri + 1,0) , 0 ).x;
+      float f2 = texelFetch( u_field , ivec2(10*tri + 2,0) , 0 ).x;
+      float f3 = texelFetch( u_field , ivec2(10*tri + 3,0) , 0 ).x;
+      float f4 = texelFetch( u_field , ivec2(10*tri + 4,0) , 0 ).x;
+      float f5 = texelFetch( u_field , ivec2(10*tri + 5,0) , 0 ).x;
+      float f6 = texelFetch( u_field , ivec2(10*tri + 6,0) , 0 ).x;
+      float f7 = texelFetch( u_field , ivec2(10*tri + 7,0) , 0 ).x;
+      float f8 = texelFetch( u_field , ivec2(10*tri + 8,0) , 0 ).x;
+      float f9 = texelFetch( u_field , ivec2(10*tri + 9,0) , 0 ).x;
+
+      float phi0 =  s*(-1.1E1/2.0)-t*(1.1E1/2.0)+s*t*1.8E1-s*(t*t)*(2.7E1/2.0)-(s*s)*t*(2.7E1/2.0)+(s*s)*9.0-
+                  (s*s*s)*(9.0/2.0)+(t*t)*9.0-(t*t*t)*(9.0/2.0)+1.0;
+
+      float phi1 =  s-(s*s)*(9.0/2.0)+(s*s*s)*(9.0/2.0);
+      float phi2 =  t-(t*t)*(9.0/2.0)+(t*t*t)*(9.0/2.0);
+
+      float phi3 =  s*t*(-9.0/2.0)+(s*s)*t*(2.7E1/2.0);
+
+      float phi4 =  s*t*(-9.0/2.0)+s*(t*t)*(2.7E1/2.0);
+
+      float phi5 =  t*(-9.0/2.0)+s*t*(9.0/2.0)-s*(t*t)*(2.7E1/2.0)+(t*t)*1.8E1-(t*t*t)*(2.7E1/2.0);
+
+      float phi6 =  t*9.0-s*t*(4.5E1/2.0)+s*(t*t)*2.7E1+(s*s)*t*(2.7E1/2.0)-(t*t)*(4.5E1/2.0)+(t*t*t)*(2.7E1/2.0);
+
+      float phi7 =  s*9.0-s*t*(4.5E1/2.0)+s*(t*t)*(2.7E1/2.0)+(s*s)*t*2.7E1-(s*s)*(4.5E1/2.0)+(s*s*s)*(2.7E1/2.0);
+
+      float phi8 =  s*(-9.0/2.0)+s*t*(9.0/2.0)-(s*s)*t*(2.7E1/2.0)+(s*s)*1.8E1-(s*s*s)*(2.7E1/2.0);
+
+      float phi9 =  s*t*2.7E1-s*(t*t)*2.7E1-(s*s)*t*2.7E1;
+
+      u = f0*phi0 + f1*phi1 + f2*phi1 + f3*phi3 + f4*phi4 + f5*phi5 + f6*phi6 + f7*phi7 + f8*phi8 + f9*phi9;
+    }
 
     if (u_edges < 0) {
       vec3 color;
@@ -199,25 +225,25 @@ fragmentShaderSource = `#version 300 es
   }`;
 
 
-  let visualizer = undefined;
+  let avro = undefined;
   function run() {
 
     let addr = "ws://localhost:7681";
     //addr = "ws://wazowski.middlebury.edu:7682";
     //addr = "ws://140.233.165.163:7682";
 
-    visualizer = new WebGLpp(addr,'canvas-visualizer',vertexShaderSource,fragmentShaderSource);
+    let visualizer = new WebGLpp(addr,'canvas-visualizer',vertexShaderSource,fragmentShaderSource);
 
-    let avro = new avroWebGL(visualizer);
+    avro = new avroWebGL(visualizer);
     visualizer.connect(addr,avro);
   }
 
   function savePNG() {
-    visualizer.gl.preserveDrawingBuffer = true;
-    visualizer.draw();
-    visualizer.gl.preserveDrawingBuffer = false;
+    avro.gl.preserveDrawingBuffer = true;
+    avro.draw();
+    avro.gl.preserveDrawingBuffer = false;
 
-    let data = visualizer.canvas.toDataURL('image/png');
+    let data = avro.canvas.toDataURL('image/png');
     let url = data.replace(/^data:image\/png/,'data:application/octet-stream');
     let link = document.createElement('a');
     link.setAttribute('href', url);
@@ -227,11 +253,11 @@ fragmentShaderSource = `#version 300 es
   }
 
   function resetView() {
-    for (let i = 0; i < visualizer.meshes.length; i++)
-      visualizer.meshes[i].modelMatrix = mat4.create();
-    visualizer.eye = vec3.fromValues(0,0,-2);
+    avro.modelMatrix = mat4.create();
+    avro.eye = vec3.fromValues(0,0,-2);
+    avro.center = vec3.fromValues(0.5,0.5,0.0);
     mat4.lookAt( visualizer.viewMatrix, visualizer.eye, visualizer.center , vec3.fromValues(0,1,0) );
-    visualizer.draw();
+    avro.draw();
   }
 
 </script>
