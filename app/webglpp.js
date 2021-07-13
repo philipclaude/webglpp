@@ -22,7 +22,6 @@ function WebGLpp( url , canvasID , vertexShaderSource , fragmentShaderSource ) {
 
       let message = JSON.parse(evt.data);
       let buffers = message['buffers'];
-      console.log(buffers);
 
       console.log('unpacking ' + buffers.length + ' buffers' );
       for (let i = 0; i < buffers.length; i++) {
@@ -92,7 +91,6 @@ avroWebGL.prototype.initialize = function(webglpp) {
   let gl = this.gl;
   let buffers = webglpp.buffers;
 
-  console.log(buffers);
   console.log('parsing ' + buffers.length + ' buffers' );
 
   // split up the buffer information into coordinates, triangle indices, edge indices, normals, colors, etc.
@@ -158,7 +156,6 @@ avroWebGL.prototype.initialize = function(webglpp) {
       let texture = this.gl.createTexture();
       this.gl.bindTexture( this.gl.TEXTURE_2D , texture );
 
-      console.log(buffers[i].data);
       const data = new Float32Array(buffers[i].data);
       const level = 0;
       const internalFormat = gl.R32F;
@@ -203,12 +200,7 @@ avroWebGL.prototype.initialize = function(webglpp) {
           parameters.push(0.0); parameters.push(1.0);
         }
       }
-
       console.assert( parameters.length/2 == this.vao[i].points.nb_indices/3 );
-
-      console.log('triangle numbers = ' + vertex_numbers);
-      console.log(parameters);
-      console.log(this.vao[i].points.data);
 
       this.vao[i].numbers = this.gl.createBuffer();
       this.gl.bindBuffer( this.gl.ARRAY_BUFFER , this.vao[i].numbers );
