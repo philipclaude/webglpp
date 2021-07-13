@@ -65,8 +65,8 @@
         <input type='checkbox' onchange='visualizer.triangleNumbers = !visualizer.triangleNumbers;visualizer.draw();'>tri #'s</input>
         <hr>
         <div class='container'>
-          <canvas style='background-color:white' width=1000 height=1000 id='canvas-visualizer'></canvas>
-          <canvas width=1000 height=1000 id='text'></canvas>
+          <canvas style='background-color:white' width=1000 height=800 id='canvas-visualizer'></canvas>
+          <canvas width=1000 height=800 id='text'></canvas>
         </div>
       </div> <!-- container-fluid -->
     </div> <!-- page-content-wrapper -->
@@ -81,6 +81,7 @@ vertexShaderSource = `#version 300 es
   in vec3 a_Position;
   in vec3 a_Color;
   in vec3 a_Normal;
+  in float a_Scalar;
 
   uniform mat4 u_ModelMatrix;
   uniform mat4 u_ViewMatrix;
@@ -93,6 +94,7 @@ vertexShaderSource = `#version 300 es
   out vec3 v_Position;
   out vec3 v_Color;
   out vec3 v_Normal;
+  out float v_Scalar;
 
   void main() {
     gl_Position = u_PerspectiveMatrix * u_ViewMatrix * u_ModelMatrix * vec4(a_Position,1.0);
@@ -104,6 +106,7 @@ vertexShaderSource = `#version 300 es
 
     v_Normal = mat3(u_NormalMatrix)*a_Normal;
     v_Position = vec3(u_ViewMatrix * u_ModelMatrix * vec4(a_Position,1.0));
+    v_Scalar = a_Scalar;
   }`;
 fragmentShaderSource = `#version 300 es
   precision mediump float;
@@ -113,19 +116,32 @@ fragmentShaderSource = `#version 300 es
   in vec3 v_Color;
   in vec3 v_Position;
   out vec4 fragColor;
+  in float v_Scalar;
 
   uniform sampler2D u_colormap;
 
+  void
+  get_color( in float u , out vec3 color ) {
+
+    // todo make these uniforms that are set by the user
+    float umin = 0.0;
+    float umax = 1.0;
+
+    float idx = 255.0*(u - umin)/(umax - umin);
+    color = texelFetch( u_colormap , ivec2(idx,0) , 0 ).xyz;
+  }
+
+
   void main() {
 
-    float x = 170.1111; // testing rounding of float to texture coordinate
-    vec3 c = texelFetch( u_colormap , ivec2(x,0) , 0 ).xyz;
-    vec3 normal = normalize( cross(dFdx(v_Position),dFdy(v_Position)));
+    //float x = v_Scalar;
+    //vec3 c = texelFetch( u_colormap , ivec2(x,0) , 0 ).xyz;
+    vec3 color;
+    get_color(v_Scalar,color);
 
     if (u_edges < 0) {
       //fragColor = vec4(0.8,0.8,0.2,1);
-      //fragColor = vec4(normal,1);
-      fragColor = vec4(c,1);
+      fragColor = vec4(color,1);
     }
     else {
       fragColor = vec4(0,0,0,1);

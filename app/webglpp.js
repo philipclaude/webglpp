@@ -117,20 +117,38 @@ avroWebGL.prototype.initialize = function(webglpp) {
     idx = parseInt(s[1]);
 
     const name = s[0];
-    if (name == 'coordinates') {
+    if (name.indexOf('coordinates') !== -1) {
       this.vao[idx].points = buffers[i];
       this.vao[idx].points.nb_indices = buffers[i].nb;
     }
-    else if (name == 'edges') {
+    else if (name.indexOf('edges') !== -1) {
       const j = this.vao[idx].edges.length;
       this.vao[idx].edges.push(buffers[i]);
       this.vao[idx].edges[j].nb_indices = buffers[i].nb;
 
     }
-    else if (name == 'triangles') {
+    else if (name.indexOf('triangles') !== -1) {
       const j = this.vao[idx].triangles.length;
       this.vao[idx].triangles.push(buffers[i]);
       this.vao[idx].triangles[j].nb_indices = buffers[i].nb;
+      this.vao[idx].triangles[j].field_buffer = undefined; // fields should be added after triangles
+    }
+    else if (name.indexOf('scalar') !== -1) {
+      // creating scalar attribute
+      this.vao[idx].scalar = buffers[i];
+    }
+    else if (name.indexOf('field') !== -1) {
+      // determine which triangles these are for
+      const j = 0; // triangle patch 0
+
+      console.log('creating texture for vao index ' + idx + ' triangles ' + j);
+
+      // get rid of the previous buffer, but retrieve the data
+
+      // create a texture to hold the data
+      let texture_buffer = this.gl.createBuffer();
+
+      this.vao[idx].triangles[j].field_buffer = texture_buffer;
     }
     else {
       console.log('unknown primitive type');
@@ -186,34 +204,10 @@ avroWebGL.prototype.setup = function(webglpp) {
   this.perspectiveMatrix = mat4.create()
   mat4.perspective( this.perspectiveMatrix, Math.PI/4.0, this.canvas.width/this.canvas.height, 0.1, 1000.0 );
 
-  // initialize the texture
+  // initialize the texture for the colormap
   let gl = this.gl;
   let texture = this.gl.createTexture();
   this.gl.bindTexture( this.gl.TEXTURE_2D , texture );
-
-  // fill texture with data
-  /*
-  const level = 0;
-  const internalFormat = gl.R32F;
-  const width = 4;
-  const height = 1;
-  const border = 0;
-  const type = gl.FLOAT;
-  const data = new Float32Array([1,1,1,1]);
-  const alignment = 1;
-  gl.pixelStorei( gl.UNPACK_ALIGNMENT , alignment );
-  gl.texImage2D( gl.TEXTURE_2D , level , internalFormat , width , height , border , gl.RED , type , data );
-
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-
-  // activate the texture and set the uniform
-  gl.activeTexture( gl.TEXTURE0 + 0 );
-  this.gl.bindTexture( this.gl.TEXTURE_2D , texture );
-  gl.uniform1i(gl.getUniformLocation(this.program, 'u_colormap'),0);
-  */
 
   const data = new Float32Array(colormap['viridis']);
   const level = 0;
@@ -232,11 +226,7 @@ avroWebGL.prototype.setup = function(webglpp) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
-  // activate the texture and set the uniform
-  gl.activeTexture( gl.TEXTURE0 + 0 );
-  this.gl.bindTexture( this.gl.TEXTURE_2D , texture );
-  gl.uniform1i(gl.getUniformLocation(this.program, 'u_colormap'),0);
-
+  this.colormap_texture = texture;
 }
 
 avroWebGL.prototype.draw = function() {
@@ -256,11 +246,18 @@ avroWebGL.prototype.draw = function() {
   // set the camera and perspective matrices (which may have changed)
   gl.uniformMatrix4fv( this.u_ViewMatrix , false , this.viewMatrix );
   gl.uniformMatrix4fv( this.u_PerspectiveMatrix , false , this.perspectiveMatrix );
-
   gl.uniformMatrix4fv( this.u_ModelMatrix , false , this.modelMatrix );
 
-  for (let i = 0; i < this.vao.length; i++)
+  // activate the texture and set the uniform
+  gl.activeTexture( gl.TEXTURE0 + 0 );
+  this.gl.bindTexture( this.gl.TEXTURE_2D , this.colormap_texture );
+  gl.uniform1i(gl.getUniformLocation(this.program, 'u_colormap'),0);
+
+  for (let i = 0; i < this.vao.length; i++) {
+
+    // activate the appropriate texture if there are any fields associated with a particular patch of triangles
     this.vao[i].draw( this.gl , this.program );
+  }
 }
 
 
@@ -270,6 +267,7 @@ function VertexArrayObject() {
   this.points    = undefined;
   this.colors    = undefined;
   this.normals   = undefined;
+  this.scalar    = undefined; // scalar attribute
 }
 
 VertexArrayObject.prototype.draw = function(gl,program) {
@@ -279,6 +277,13 @@ VertexArrayObject.prototype.draw = function(gl,program) {
   const a_Position = gl.getAttribLocation(program,'a_Position');
   gl.vertexAttribPointer( a_Position , 3 , gl.FLOAT, false, 0, 0);
   gl.enableVertexAttribArray(a_Position);
+
+  if (this.scalar != undefined) {
+    gl.bindBuffer( gl.ARRAY_BUFFER , this.scalar );
+    const a_Scalar = gl.getAttribLocation(program,'a_Scalar');
+    gl.vertexAttribPointer( a_Scalar , 1 , gl.FLOAT , false , 0 , 0 );
+    gl.enableVertexAttribArray(a_Scalar);
+  }
 
   // if normals, if colors, etc. enable those attributes as well
   // TODO

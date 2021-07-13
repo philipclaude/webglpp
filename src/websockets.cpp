@@ -150,9 +150,11 @@ Server::write() {
     //goto cleanup;
   }
 
-  int enble = 1;
-  if (setsockopt(server_fd,SOL_SOCKET,SO_REUSEADDR,&enble,sizeof(int)) < 0)
+  // allow the port to be re-used so that we don't have to keep changing the port number when re-running
+  int enable = 1;
+  if (setsockopt(server_fd,SOL_SOCKET,SO_REUSEADDR,&enable,sizeof(int)) < 0) {
     printf("error\n");
+  }
 
   // bind the server to our socket
   server.sin_family      = AF_INET;
