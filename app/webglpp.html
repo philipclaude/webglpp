@@ -125,6 +125,8 @@ fragmentShaderSource = `#version 300 es
   uniform sampler2D u_field;
 
   uniform int u_nb_basis;
+  uniform int u_twidth;
+  uniform int u_theight;
 
   void
   get_color( in float u , out vec3 color ) {
@@ -137,6 +139,11 @@ fragmentShaderSource = `#version 300 es
     if (idx > 255) idx = 255;
     if (idx < 0) idx = 0;
     color = texelFetch( u_colormap , ivec2(idx,0) , 0 ).xyz;
+  }
+
+  int
+  modi( int x , int y ) {
+    return x - int(floor( float(x)/float(y)));
   }
 
   void main() {
@@ -154,9 +161,11 @@ fragmentShaderSource = `#version 300 es
     }
     else if (u_nb_basis == 3) { // p = 1
 
-      float f0 = texelFetch( u_field , ivec2(3*tri  ,0) , 0 ).x;
-      float f1 = texelFetch( u_field , ivec2(3*tri+1,0) , 0 ).x;
-      float f2 = texelFetch( u_field , ivec2(3*tri+2,0) , 0 ).x;
+      int p = 3*tri;
+
+      float f0 = texelFetch( u_field , ivec2((p+0)/u_theight,modi(p+0,u_theight)) , 0 ).x;
+      float f1 = texelFetch( u_field , ivec2((p+1)/u_theight,modi(p+1,u_theight)) , 0 ).x;
+      float f2 = texelFetch( u_field , ivec2((p+2)/u_theight,modi(p+2,u_theight)) , 0 ).x;
 
       float phi0 =  1.0 - s - t;
       float phi1 =  s;
@@ -165,12 +174,14 @@ fragmentShaderSource = `#version 300 es
     }
     else if (u_nb_basis == 6) { // p = 2
 
-      float f0 = texelFetch( u_field , ivec2(6*tri  ,0) , 0 ).x;
-      float f1 = texelFetch( u_field , ivec2(6*tri+1,0) , 0 ).x;
-      float f2 = texelFetch( u_field , ivec2(6*tri+2,0) , 0 ).x;
-      float f3 = texelFetch( u_field , ivec2(6*tri+3,0) , 0 ).x;
-      float f4 = texelFetch( u_field , ivec2(6*tri+4,0) , 0 ).x;
-      float f5 = texelFetch( u_field , ivec2(6*tri+5,0) , 0 ).x;
+      int p = 6*tri;
+
+      float f0 = texelFetch( u_field , ivec2((p+0)/u_theight,modi(p+0,u_theight)) , 0 ).x;
+      float f1 = texelFetch( u_field , ivec2((p+1)/u_theight,modi(p+1,u_theight)) , 0 ).x;
+      float f2 = texelFetch( u_field , ivec2((p+2)/u_theight,modi(p+2,u_theight)) , 0 ).x;
+      float f3 = texelFetch( u_field , ivec2((p+3)/u_theight,modi(p+3,u_theight)) , 0 ).x;
+      float f4 = texelFetch( u_field , ivec2((p+4)/u_theight,modi(p+4,u_theight)) , 0 ).x;
+      float f5 = texelFetch( u_field , ivec2((p+5)/u_theight,modi(p+5,u_theight)) , 0 ).x;
 
       float phi0 =  s*-3.0-t*3.0+s*t*4.0+(s*s)*2.0+(t*t)*2.0+1.0;
       float phi1 =  -s+(s*s)*2.0;
@@ -182,16 +193,19 @@ fragmentShaderSource = `#version 300 es
     }
     else if (u_nb_basis == 10) { // p = 3
 
-      float f0 = texelFetch( u_field , ivec2(10*tri + 0,0) , 0 ).x;
-      float f1 = texelFetch( u_field , ivec2(10*tri + 1,0) , 0 ).x;
-      float f2 = texelFetch( u_field , ivec2(10*tri + 2,0) , 0 ).x;
-      float f3 = texelFetch( u_field , ivec2(10*tri + 3,0) , 0 ).x;
-      float f4 = texelFetch( u_field , ivec2(10*tri + 4,0) , 0 ).x;
-      float f5 = texelFetch( u_field , ivec2(10*tri + 5,0) , 0 ).x;
-      float f6 = texelFetch( u_field , ivec2(10*tri + 6,0) , 0 ).x;
-      float f7 = texelFetch( u_field , ivec2(10*tri + 7,0) , 0 ).x;
-      float f8 = texelFetch( u_field , ivec2(10*tri + 8,0) , 0 ).x;
-      float f9 = texelFetch( u_field , ivec2(10*tri + 9,0) , 0 ).x;
+      int p = 10*tri;
+
+      float f0 = texelFetch( u_field , ivec2((p+0)/u_theight,modi(p+0,u_theight)) , 0 ).x;
+      float f1 = texelFetch( u_field , ivec2((p+1)/u_theight,modi(p+1,u_theight)) , 0 ).x;
+      float f2 = texelFetch( u_field , ivec2((p+2)/u_theight,modi(p+2,u_theight)) , 0 ).x;
+      float f3 = texelFetch( u_field , ivec2((p+3)/u_theight,modi(p+3,u_theight)) , 0 ).x;
+      float f4 = texelFetch( u_field , ivec2((p+4)/u_theight,modi(p+4,u_theight)) , 0 ).x;
+      float f5 = texelFetch( u_field , ivec2((p+5)/u_theight,modi(p+5,u_theight)) , 0 ).x;
+      float f6 = texelFetch( u_field , ivec2((p+6)/u_theight,modi(p+6,u_theight)) , 0 ).x;
+      float f7 = texelFetch( u_field , ivec2((p+7)/u_theight,modi(p+7,u_theight)) , 0 ).x;
+      float f8 = texelFetch( u_field , ivec2((p+8)/u_theight,modi(p+8,u_theight)) , 0 ).x;
+      float f9 = texelFetch( u_field , ivec2((p+9)/u_theight,modi(p+9,u_theight)) , 0 ).x;
+
 
       float phi0 =  s*(-1.1E1/2.0)-t*(1.1E1/2.0)+s*t*1.8E1-s*(t*t)*(2.7E1/2.0)-(s*s)*t*(2.7E1/2.0)+(s*s)*9.0-
                   (s*s*s)*(9.0/2.0)+(t*t)*9.0-(t*t*t)*(9.0/2.0)+1.0;

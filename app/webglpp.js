@@ -56,9 +56,15 @@ WebGLpp.prototype.addBuffer = function(data,target,type,tag,index) {
 
   if (type == "Float32Array") {
     gl.bufferData( gl.ARRAY_BUFFER , new Float32Array(data) , gl.STATIC_DRAW );
+    buffer.type = gl.FLOAT;
   }
   else if (type == "Uint16Array") {
     gl.bufferData( gl.ELEMENT_ARRAY_BUFFER , new Uint16Array(data) , gl.STATIC_DRAW );
+    buffer.type = gl.UNSIGNED_SHORT;
+  }
+  else if (type == "Uint32Array") {
+    gl.bufferData( gl.ELEMENT_ARRAY_BUFFER , new Uint32Array(data) , gl.STATIC_DRAW );
+    buffer.type = gl.UNSIGNED_SHORT;
   }
   else {
     console.log('unknown buffer type' + type);
@@ -152,21 +158,49 @@ avroWebGL.prototype.initialize = function(webglpp) {
 
       console.log('creating texture for vao index ' + idx + ' triangles ' + j, 'order = ',order);
 
+      const max_texture_size = this.gl.getParameter( this.gl.MAX_TEXTURE_SIZE );
+      console.log('max texture dimension = ',max_texture_size,'requesting',buffers[i].data.length);
+
+      // determine an appropriate texture size
+      let data = buffers[i].data;
+
+      // first find the next power of 2 greater than data.length
+      let n = 1;
+      while (n < data.length) {
+        n *= 2;
+      }
+
+      // pad data with zeros
+      const N = data.length;
+      for (let i = N; i < n; i++)
+        data.push(0.0);
+
+      // now determine an appropriate width and height
+      let w = data.length;
+      let h = 1;
+      while (w > max_texture_size) {
+        w = w/2;
+        h = h*2;
+      }
+      console.log('using a width of',w,'and a height of',h);
+
       // create a texture to hold the data
       let texture = this.gl.createTexture();
       this.gl.bindTexture( this.gl.TEXTURE_2D , texture );
 
-      const data = new Float32Array(buffers[i].data);
+      texture.width  = w;
+      texture.height = h;
+
       const level = 0;
       const internalFormat = gl.R32F;
-      const width = data.length;
-      const height = 1;
+      const width = w;
+      const height = h;
       const border = 0;
       const type = gl.FLOAT;
       const alignment = 1;
 
       gl.pixelStorei( gl.UNPACK_ALIGNMENT , alignment );
-      gl.texImage2D( gl.TEXTURE_2D , level , internalFormat , width , height , border , gl.RED , type , data );
+      gl.texImage2D( gl.TEXTURE_2D , level , internalFormat , width , height , border , gl.RED , type , new Float32Array(data) );
 
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -379,19 +413,26 @@ VertexArrayObject.prototype.draw = function(gl,program) {
       gl.bindTexture( gl.TEXTURE_2D , this.triangles[i].field );
       gl.uniform1i(gl.getUniformLocation(program, 'u_field'),1);
 
+      // tell the shader the width and height of this texture
+      const w = this.triangles[i].field.width;
+      const h = this.triangles[i].field.height;
+
+      gl.uniform1i( gl.getUniformLocation(program,'u_twidth'),w);
+      gl.uniform1i( gl.getUniformLocation(program,'u_theight'),h);
+
       // tell the shader how many basis functions there are for the field
       gl.uniform1i(gl.getUniformLocation(program,'u_nb_basis'),this.triangles[i].field.nb_basis );
     }
 
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER , this.triangles[i] );
-    gl.drawElements( gl.TRIANGLES , this.triangles[i].nb_indices , gl.UNSIGNED_SHORT , 0 );
+    gl.drawElements( gl.TRIANGLES , this.triangles[i].nb_indices , this.triangles[i].type , 0 );
   }
 
   // draw the edges
   gl.uniform1i( program.u_edges , 1 );
   for (let i = 0; i < this.edges.length; i++) {
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER , this.edges[i] );
-    gl.drawElements( gl.LINES , this.edges[i].nb_indices , gl.UNSIGNED_SHORT , 0 );
+    gl.drawElements( gl.LINES , this.edges[i].nb_indices , this.edges[i].type , 0 );
   }
 
 
