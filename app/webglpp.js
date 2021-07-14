@@ -64,7 +64,7 @@ WebGLpp.prototype.addBuffer = function(data,target,type,tag,index) {
   }
   else if (type == "Uint32Array") {
     gl.bufferData( gl.ELEMENT_ARRAY_BUFFER , new Uint32Array(data) , gl.STATIC_DRAW );
-    buffer.type = gl.UNSIGNED_SHORT;
+    buffer.type = gl.UNSIGNED_INT
   }
   else {
     console.log('unknown buffer type' + type);
