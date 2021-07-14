@@ -36,7 +36,7 @@ WebGLpp::send() {
     jbuffer["index"]  = i;
     jbuffer["target"] = target_name(buffer.target());
 
-    std::cout << jbuffer.dump() << std::endl;
+    //std::cout << jbuffer.dump() << std::endl;
 
     jbuffers.push_back(jbuffer);
   }

@@ -301,7 +301,9 @@ avroWebGL.prototype.draw = function() {
   let ctx = textCanvas.getContext('2d');
   ctx.clearRect(0,0,textCanvas.width,textCanvas.height);
   ctx.font = '20px Arial';
-  //gl.enable(this.gl.DEPTH_TEST);
+  gl.enable(this.gl.DEPTH_TEST);
+  gl.enable(gl.POLYGON_OFFSET_FILL);
+  gl.polygonOffset(2, 3);
 
   // set the camera and perspective matrices (which may have changed)
   gl.uniformMatrix4fv( this.u_ViewMatrix , false , this.viewMatrix );
