@@ -25,7 +25,7 @@ add_json_field( std::string& J , const std::string& name , const std::vector<T>&
     J += "]";
   else {
     for (int k = 0; k < (int)x.size(); k++) {
-      J += std::to_string(round(x[k]));
+      J += std::to_string(x[k]);
       if (k < int(x.size())-1) J += ",";
       else J += "]";
     }
