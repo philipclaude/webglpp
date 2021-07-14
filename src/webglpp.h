@@ -3,8 +3,6 @@
 
 #include "websockets.h"
 
-#include <bitset>
-
 #include <memory>
 #include <vector>
 #include <stdio.h>

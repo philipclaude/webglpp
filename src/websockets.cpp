@@ -133,7 +133,7 @@ sendmessage( int fd , const std::string& msg , int type ) {
 }
 
 void
-Server::write() {
+Server::write(int port) {
 
   struct sockaddr_in server;
   struct sockaddr_in client;
@@ -170,9 +170,9 @@ Server::write() {
   // bind the server to our socket
   server.sin_family      = AF_INET;
   server.sin_addr.s_addr = INADDR_ANY;
-  server.sin_port        = htons(port_);
+  server.sin_port        = htons(port);
   if (bind(server_fd, (struct sockaddr *)&server, sizeof(server)) < 0) {
-		printf("failed to bind server on port %d - try changing the port number\n",port_);
+		printf("failed to bind server on port %d - try changing the port number\n",port);
     goto cleanup;
   }
 
