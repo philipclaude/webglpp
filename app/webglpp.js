@@ -20,6 +20,10 @@ function WebGLpp( url , canvasID , vertexShaderSource , fragmentShaderSource ) {
     ws.onclose = function(evt) { console.log('connection closed'); }
     ws.onmessage = function(evt) {
 
+      console.log(evt.data.length);
+      console.log(evt.data);
+      console.log(evt.data.substr(2080,2100));
+
       let message = JSON.parse(evt.data);
       let buffers = message['buffers'];
 
