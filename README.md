@@ -1,6 +1,6 @@
 # webglpp
 
-The goal of `WebGLpp` is to provide a WebGL-like interface for computer graphics or computational geometry programs written in `C++`. Instead of using an API like `OpenGL`, `WebGLpp` allows you to create and send buffers to a client (your browser) so as to provide a more lightweight platform-independent solution for visualizing the results of your graphics and geometry programs.
+The goal of `WebGLpp` (WebGL for C++) is to provide a WebGL-like interface for computer graphics or computational geometry programs written in `C++`. Instead of using an API like `OpenGL`, `WebGLpp` allows you to create and send buffers to a client (your browser) so as to provide a more lightweight platform-independent solution for visualizing the results of your graphics and geometry programs.
 
 I primarily developed `WebGLpp` for a course called [Geometric Modeling](https://csci422-s22.gitlab.io/home/calendar.html) (Middlebury College, CSCI 0422), which is used by the [flux](https://gitlab.com/csci422-s22/flux-base) library for that course, and has also been integrated into [avro](https://gitlab.com/philipclaude/avro).
 
@@ -37,8 +37,8 @@ See LICENSE.txt for the complete LGPL license.
 
 Copyright © 2022 Philip Claude Caplan
 
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
+You should have received a copy of the GNU Lesser General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
