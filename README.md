@@ -24,7 +24,7 @@ I primarily developed `WebGLpp` for a course called [Geometric Modeling](https:/
 
 This will build the library as well as three examples. The executables for the examples are located in the `bin` directory, with corresponding source in the `examples` directory.
 
-1. simple server: tests the server connection to a particular port (it will wait until a connection is established). Usage: `bin/simple_server 7681` and then open `app/webglpp.html`. If you change the port number on the command line, you will also have to change the port number in `app/webglpp.html` (sorry, I haven't added a button to do this in a nicer way). You can look at the JavaScript console in your browser for a confirmation that the data was sent over.
+1. simple server: tests the server connection to a particular port (it will wait until a connection is established). Usage: `bin/simple_server 7681` and then open `examples/simple_server.html`. If you change the port number on the command line, you will also have to change the port number in `examples/simple_server.html` (sorry, I haven't added a button to do this in a nicer way). You can look at the JavaScript console in your browser for a confirmation that the data was sent over.
 
 2. scalar: sends a simple mesh of a square with an attached scalar field at the vertices of the mesh. Usage `bin/scalar` and then open `app/webglpp.html`
 
